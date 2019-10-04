@@ -49,10 +49,11 @@ TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
 ##########################################################
 
 
-CDE.bkmr <- function(a, astar, m.quant, fit.y, X.predict=rep(0,ncol(fit.y$X)), alpha=0.05, sel, seed){
+CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
   toreturn <- list()
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
   Z <- fit.y$Z[,-ncol(fit.y$Z)] # exposure + effect modifier
+  X.predict=rep(0,ncol(fit.y$X))
   
   toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=4, dimnames=list(paste0("CDE",m.quant*100), c("mean","median","lower","upper")))
   for(i in seq_along(m.quant)){
@@ -98,8 +99,6 @@ YaMastar.SamplePred <- function(a, astar, fit.m, fit.y, X.predict.M, X.predict.Y
   for(j in 1:length(sel)){
     Mastar.j <-  Mastar.samp[j,]
     aMastar.j <- cbind(matrix(a, nrow=K, ncol=length(a), byrow=TRUE), Mastar.j)
-    row.seed <- j + 10000
-    set.seed(row.seed)
     YaMastar.j <- SamplePred(fit.y, Znew = aMastar.j, Xnew = X.predict.Y, sel=sel[j])
     YaMastar.samp.mat[j,] <- as.vector(YaMastar.j)
     
