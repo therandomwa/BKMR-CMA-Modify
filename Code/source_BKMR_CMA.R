@@ -20,18 +20,26 @@ postresults <- function(posteriorsamp, alpha){
 ####             Estimate TE for BKMR                 ####
 ##########################################################
 
-
-TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
-  toreturn <- list()
-  
+YaYastar.SamplePred <- function(a, astar, fit.y.TE, X.predict, sel, seed){
   set.seed(seed)
-  newz  <- rbind(a,astar)
+  newz = rbind(a, astar)
   
   # give prediction Y for both a and astar
-  TE.mat <- SamplePred(fit.y.TE, Znew = newz, Xnew = X.predict, sel=sel) 
+  TE.mat = SamplePred(fit.y.TE, Znew = newz, Xnew = X.predict, sel = sel)
+  Ya = TE.mat[,"znew1"]
+  Yastar = TE.mat[,"znew2"]
+  
+  return(list(Ya = Ya, Yastar = Yastar))
+}
 
-  Ya     <- TE.mat[,"znew1"]
-  Yastar <- TE.mat[,"znew2"]
+
+TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
+  
+  toreturn <- list()
+  
+  YaYastar = YaYastar.SamplePred(a, astar, fit.y.TE, X.predict, sel, seed)
+  Ya     <- YaYastar$Ya
+  Yastar <- YaYastar$Yastar
   
   toreturn$TE.samp     <- as.vector(Ya - Yastar)
   toreturn$Ya.samp     <- as.vector(Ya) 
@@ -116,33 +124,33 @@ YaMastar.SamplePred <- function(a, astar, fit.m, fit.y, X.predict.M, X.predict.Y
 ####           Estimate NDE/NIE for BKMR              ####
 ##########################################################
 
-
 mediation.bkmr <- function(a.Y, astar.Y, astar.M, m.quant=c(0.25,0.5,0.75), fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
-  
+
   toreturn <- list()
+
   # there should be a simpler way of running
   TE <- TE.bkmr(a=a.Y, astar=astar.Y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
-  
+
   Ya     <- TE$Ya.samp
   Yastar <- TE$Yastar.samp
-  
-  
+
+
   YaMastar <- YaMastar.SamplePred(a=a.Y, astar=astar.M, fit.m=fit.m, fit.y=fit.y,
                                         X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
   
   NDE <- YaMastar - Yastar
   NIE <- Ya - YaMastar
-    
+
 
   toreturn$TE.samp <- TE$TE.samp
   toreturn$NDE.samp <- NDE
   toreturn$NIE.samp <- NIE
-  
+
   toreturn$est <- matrix(NA, nrow=3, ncol=4, dimnames=list(c("TE","NDE","NIE"), c("mean","median","lower","upper")))
   toreturn$est[c("TE","NDE","NIE"),] <- rbind(postresults(TE$TE.samp, alpha=alpha) [c("mean","median","lower","upper")],
                                               postresults(NDE, alpha=alpha)[c("mean","median","lower","upper")],
                                               postresults(NIE, alpha=alpha)[c("mean","median","lower","upper")])
-  
+
   return(toreturn)
 }
 
