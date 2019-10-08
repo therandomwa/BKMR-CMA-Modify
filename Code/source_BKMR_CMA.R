@@ -125,7 +125,7 @@ CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
 #' Get YaMastar used in NDE and NIE caculation
 #' 
 #' @param a exposure variables and effect modifier for outcome at current level
-#' @param astar exposure variables and effect modifier for mediator at counterfactual level 
+#' @param astar.m exposure variables and effect modifier for mediator at counterfactual level 
 #' @param fit.m model fit regressing mediator on exposures and confounders on mediator
 #' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
 #' @param X.predict.M counfounders for mediator
@@ -134,11 +134,11 @@ CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
 #' @param seed the random seed to use to evaluate the code
 #' @param K number of samples to generate for each MCMC iteration
 #' @return A vector containing the sample prediction for YaMastar
-YaMastar.SamplePred <- function(a, astar, fit.m, fit.y, X.predict.M, X.predict.Y, sel, seed, K){
+YaMastar.SamplePred <- function(a, astar.m, fit.m, fit.y, X.predict.M, X.predict.Y, sel, seed, K){
   start.time <- proc.time()
  
   set.seed(seed)
-  EM.samp <- SamplePred(fit.m, Znew = astar, Xnew = X.predict.M, sel=sel) 
+  EM.samp <- SamplePred(fit.m, Znew = astar.m, Xnew = X.predict.M, sel=sel) 
   Mastar     <- as.vector(EM.samp)
   
   sigma.samp  <- sqrt(fit.m$sigsq.eps[sel])
@@ -194,7 +194,7 @@ mediation.bkmr <- function(a.Y, astar.Y, astar.M, m.quant=c(0.25,0.5,0.75), fit.
   Yastar <- TE$Yastar.samp
 
 
-  YaMastar <- YaMastar.SamplePred(a=a.Y, astar=astar.M, fit.m=fit.m, fit.y=fit.y,
+  YaMastar <- YaMastar.SamplePred(a=a.Y, astar.m=astar.M, fit.m=fit.m, fit.y=fit.y,
                                         X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
   
   NDE <- YaMastar - Yastar
