@@ -4,7 +4,11 @@
 
 
 ##### function to calculate mean/median/CI/sd of a vector of posterior/bootstrap samples
-
+#' Calculate mean/median/CI/sd of a vector of posterior/bootstrap samples
+#' 
+#' @param posteriorsamp sample prediction
+#' @param alpha 1-confidence interval
+#' @return Mean. median , CI and sd of the sample prediction
 postresults <- function(posteriorsamp, alpha){
   toreturn <- vector()
   toreturn["mean"]   <- mean(posteriorsamp, na.rm=TRUE)
@@ -20,6 +24,15 @@ postresults <- function(posteriorsamp, alpha){
 ####             Estimate TE for BKMR                 ####
 ##########################################################
 
+#' Get Ya and Yastar used in effects caculation
+#' 
+#' @param a exposure variables and effect modifier for outcome at current level
+#' @param astar exposure variables and effect modifier for outcome at counterfactual level
+#' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
+#' @param X.predict counfounders for outcome
+#' @param sel a vector selecting which iterations of the fit should be retained or inference
+#' @param seed the random seed to use to evaluate the code
+#' @return A list containing the sample prediction for Ya and Yastar
 YaYastar.SamplePred <- function(a, astar, fit.y.TE, X.predict, sel, seed){
   set.seed(seed)
   newz <- rbind(a, astar)
@@ -33,6 +46,16 @@ YaYastar.SamplePred <- function(a, astar, fit.y.TE, X.predict, sel, seed){
 }
 
 
+#' Estimate total effect for BKMR
+#' 
+#' @param a exposure variables and effect modifier for outcome at current level
+#' @param astar exposure variables and effect modifier for outcome at counterfactual level
+#' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
+#' @param X.predict counfounders for outcome
+#' @param alpha 1-confidence interval
+#' @param sel a vector selecting which iterations of the fit should be retained or inference
+#' @param seed the random seed to use to evaluate the code
+#' @return Totak effect for BKMR
 TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
   
   toreturn <- list()
@@ -56,7 +79,16 @@ TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
 ####           Estimate CDE for BKMR                  ####
 ##########################################################
 
-
+#' Estimate controlled direct effect for BKMR
+#' 
+#' @param a exposure variables and effect modifier for outcome at current level
+#' @param astar exposure variables and effect modifier for outcome at counterfactual level
+#' @param m.quant values of the quantile that the mediator is set to 
+#' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
+#' @param alpha 1-confidence interval
+#' @param sel a vector selecting which iterations of the fit should be retained or inference
+#' @param seed the random seed to use to evaluate the code
+#' @return Controlled direct effect for BKMR
 CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
   toreturn <- list()
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
@@ -90,7 +122,18 @@ CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
 ####           YaMastar counterfactual                ####
 ##########################################################
 
-
+#' Get YaMastar used in NDE and NIE caculation
+#' 
+#' @param a exposure variables and effect modifier for outcome at current level
+#' @param astar exposure variables and effect modifier for mediator at counterfactual level 
+#' @param fit.m model fit regressing mediator on exposures and confounders on mediator
+#' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
+#' @param X.predict.M counfounders for mediator
+#' @param X.predict.Y counfounders for outcome
+#' @param sel a vector selecting which iterations of the fit should be retained or inference
+#' @param seed the random seed to use to evaluate the code
+#' @param K number of samples to generate for each MCMC iteration
+#' @return A vector containing the sample prediction for YaMastar
 YaMastar.SamplePred <- function(a, astar, fit.m, fit.y, X.predict.M, X.predict.Y, sel, seed, K){
   start.time <- proc.time()
  
@@ -121,9 +164,25 @@ YaMastar.SamplePred <- function(a, astar, fit.m, fit.y, X.predict.M, X.predict.Y
 
 
 ##########################################################
-####           Estimate NDE/NIE for BKMR              ####
+####      Estimate NDE/NIE for BKMR(plus TE)          ####
 ##########################################################
 
+#' Estimate controlled direct effect for BKMR
+#' 
+#' @param a.Y exposure variables and effect modifier for outcome at current level
+#' @param astar.Y exposure variables and effect modifier for outcome at counterfactual level
+#' @param astar.M exposure variables and effect modifier for mediator at counterfactual level 
+#' @param m.quant values of the quantile that the mediator is set to 
+#' @param fit.m model fit regressing mediator on exposures and confounders on mediator
+#' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
+#' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
+#' @param X.predict.M counfounders for mediator
+#' @param X.predict.Y counfounders for outcome
+#' @param alpha 1-confidence interval
+#' @param sel a vector selecting which iterations of the fit should be retained or inference
+#' @param seed the random seed to use to evaluate the code
+#' @param K number of samples to generate for each MCMC iteration in YaMastar calculation
+#' @return A list contaning the sample prediction for TE, NDE, NIE and their summary statistics
 mediation.bkmr <- function(a.Y, astar.Y, astar.M, m.quant=c(0.25,0.5,0.75), fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
 
   toreturn <- list()
