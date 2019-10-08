@@ -22,12 +22,12 @@ postresults <- function(posteriorsamp, alpha){
 
 YaYastar.SamplePred <- function(a, astar, fit.y.TE, X.predict, sel, seed){
   set.seed(seed)
-  newz = rbind(a, astar)
+  newz <- rbind(a, astar)
   
   # give prediction Y for both a and astar
-  TE.mat = SamplePred(fit.y.TE, Znew = newz, Xnew = X.predict, sel = sel)
-  Ya = TE.mat[,"znew1"]
-  Yastar = TE.mat[,"znew2"]
+  TE.mat <- SamplePred(fit.y.TE, Znew = newz, Xnew = X.predict, sel = sel)
+  Ya <- TE.mat[,"znew1"]
+  Yastar <- TE.mat[,"znew2"]
   
   return(list(Ya = Ya, Yastar = Yastar))
 }
@@ -37,7 +37,7 @@ TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
   
   toreturn <- list()
   
-  YaYastar = YaYastar.SamplePred(a, astar, fit.y.TE, X.predict, sel, seed)
+  YaYastar <- YaYastar.SamplePred(a, astar, fit.y.TE, X.predict, sel, seed)
   Ya     <- YaYastar$Ya
   Yastar <- YaYastar$Yastar
   
@@ -61,7 +61,7 @@ CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
   toreturn <- list()
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
   Z <- fit.y$Z[,-ncol(fit.y$Z)] # exposure + effect modifier
-  X.predict=rep(0,ncol(fit.y$X))
+  X.predict<-rep(0,ncol(fit.y$X))
   
   toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=4, dimnames=list(paste0("CDE",m.quant*100), c("mean","median","lower","upper")))
   for(i in seq_along(m.quant)){
