@@ -2,7 +2,6 @@
 ####      Posterior/Bootstrap Summary Function        ####
 ##########################################################
 
-
 ##### function to calculate mean/median/CI/sd of a vector of posterior/bootstrap samples
 #' Calculate mean/median/CI/sd of a vector of posterior/bootstrap samples
 #' 
@@ -26,41 +25,49 @@ postresults <- function(posteriorsamp, alpha){
 
 #' Get Ya and Yastar used in effects caculation
 #' 
-#' @param a exposure variables and effect modifier for outcome at current level
-#' @param astar exposure variables and effect modifier for outcome at counterfactual level
+#' @param a exposure variables at current level
+#' @param astar exposure variables at counterfactual level
+#' @param e.y effect modifier for the outcome variable
 #' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
-#' @param X.predict counfounders for outcome
+#' @param X.predict.Y counfounders for outcome
 #' @param sel a vector selecting which iterations of the fit should be retained or inference
 #' @param seed the random seed to use to evaluate the code
 #' @return A list containing the sample prediction for Ya and Yastar
-YaYastar.SamplePred <- function(a, astar, fit.y.TE, X.predict, sel, seed){
+YaYastar.SamplePred <- function(a, astar, e.y, fit.y.TE, X.predict.Y, sel, seed){
   set.seed(seed)
-  newz <- rbind(a, astar)
+  z.y = c(a, e.y)
+  zstar.y = c(astar, e.y)
+  newz <- rbind(z.y, zstar.y)
   
   # give prediction Y for both a and astar
-  TE.mat <- SamplePred(fit.y.TE, Znew = newz, Xnew = X.predict, sel = sel)
+  TE.mat <- SamplePred(fit.y.TE, Znew = newz, Xnew = X.predict.Y, sel = sel)
   Ya <- TE.mat[,"znew1"]
   Yastar <- TE.mat[,"znew2"]
   
   return(list(Ya = Ya, Yastar = Yastar))
 }
 
+# a <- apply(A, 2, quantile, probs=0.75)
+# astar <- apply(A, 2, quantile, probs=0.25)
+# e.y <- quantile(E.Y, probs=0.1)
+# TE.age10 <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict.Y=X.predict, alpha = 0.01, sel=sel, seed=122)
 
 #' Estimate total effect for BKMR
 #' 
-#' @param a exposure variables and effect modifier for outcome at current level
-#' @param astar exposure variables and effect modifier for outcome at counterfactual level
+#' @param a exposure variables at current level
+#' @param astar exposure variables at counterfactual level
+#' @param e.y effect modifier for the outcome variable
 #' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
-#' @param X.predict counfounders for outcome
+#' @param X.predict.Y counfounders for outcome
 #' @param alpha 1-confidence interval
 #' @param sel a vector selecting which iterations of the fit should be retained or inference
 #' @param seed the random seed to use to evaluate the code
 #' @return Totak effect for BKMR
-TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
-  
+TE.bkmr <- function(a, astar, e.y, fit.y.TE, X.predict.Y, alpha=0.05, sel, seed){
+
   toreturn <- list()
   
-  YaYastar <- YaYastar.SamplePred(a, astar, fit.y.TE, X.predict, sel, seed)
+  YaYastar <- YaYastar.SamplePred(a, astar, e.y, fit.y.TE, X.predict.Y, sel, seed)
   Ya     <- YaYastar$Ya
   Yastar <- YaYastar$Yastar
   
@@ -78,22 +85,27 @@ TE.bkmr <- function(a, astar, fit.y.TE, X.predict, alpha=0.05, sel, seed){
 ##########################################################
 ####           Estimate CDE for BKMR                  ####
 ##########################################################
+# CDE.age10 <- CDE.bkmr(a=a, astar=astar, e.y=e.y, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
+
 
 #' Estimate controlled direct effect for BKMR
 #' 
-#' @param a exposure variables and effect modifier for outcome at current level
-#' @param astar exposure variables and effect modifier for outcome at counterfactual level
+#' @param a exposure variables at current level
+#' @param astar exposure variables at counterfactual level
+#' @param e.y effect modifier for the outcome variable
 #' @param m.quant values of the quantile that the mediator is set to 
 #' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
 #' @param alpha 1-confidence interval
 #' @param sel a vector selecting which iterations of the fit should be retained or inference
 #' @param seed the random seed to use to evaluate the code
 #' @return Controlled direct effect for BKMR
-CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
+CDE.bkmr <- function(a, astar, e.y, m.quant, fit.y, alpha=0.05, sel, seed){
+  
   toreturn <- list()
+  
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
   Z <- fit.y$Z[,-ncol(fit.y$Z)] # exposure + effect modifier
-  X.predict<-rep(0,ncol(fit.y$X))
+  X.predict<-rep(0,ncol(fit.y$X)) # in the calculation for CDE this value doesn't matter since it will get cancelled out
   
   toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=4, dimnames=list(paste0("CDE",m.quant*100), c("mean","median","lower","upper")))
   for(i in seq_along(m.quant)){
@@ -101,7 +113,9 @@ CDE.bkmr <- function(a, astar, m.quant, fit.y, alpha=0.05, sel, seed){
     mnew <- quantile(m, probs=m.quant[i]) # mediator set to certain quantile 
     
     set.seed(seed)
-    newZm  <- rbind(c(a,mnew),c(astar,mnew)) # exposure(3), 10% age, 10% mediator 
+    z.y = c(a, e.y)
+    zstar.y = c(astar, e.y)
+    newZm  <- rbind(c(z.y,mnew),c(zstar.y,mnew)) # exposure(3), 10% age, 10% mediator 
     CDE.mat <- SamplePred(fit.y, Znew = newZm, Xnew = X.predict, sel=sel) # X.predict is mean of confounders
     
     Yam     <- CDE.mat[,"znew1"]
