@@ -148,7 +148,7 @@ CDE.bkmr <- function(a, astar, e.y, m.quant, fit.y, alpha=0.05, sel, seed){
 #' @param seed the random seed to use to evaluate the code
 #' @param K number of samples to generate for each MCMC iteration
 #' @return A vector containing the sample prediction for YaMastar
-YaMastar.SamplePred <- function(a, astar.m, fit.m, fit.y, X.predict.M, X.predict.Y, sel, seed, K){
+YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.predict.Y, sel, seed, K){
   start.time <- proc.time()
  
   set.seed(seed)
@@ -161,9 +161,10 @@ YaMastar.SamplePred <- function(a, astar.m, fit.m, fit.y, X.predict.M, X.predict
   Mastar.samp  <- Mastar + sigma.samp*random.samp
   
   YaMastar.samp.mat     <- matrix(NA,nrow=length(sel),ncol=K)
+  z.y = c(a, e.y)
   for(j in 1:length(sel)){
     Mastar.j <-  Mastar.samp[j,]
-    aMastar.j <- cbind(matrix(a, nrow=K, ncol=length(a), byrow=TRUE), Mastar.j)
+    aMastar.j <- cbind(matrix(z.y, nrow=K, ncol=length(z.y), byrow=TRUE), Mastar.j)
     YaMastar.j <- SamplePred(fit.y, Znew = aMastar.j, Xnew = X.predict.Y, sel=sel[j])
     YaMastar.samp.mat[j,] <- as.vector(YaMastar.j)
     
@@ -175,11 +176,17 @@ YaMastar.SamplePred <- function(a, astar.m, fit.m, fit.y, X.predict.M, X.predict
   return(toreturn)
 }
 
-
+YaMastar.SamplePred(a=a, astar=astar.M, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
+                    X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
 
 ##########################################################
 ####      Estimate NDE/NIE for BKMR(plus TE)          ####
 ##########################################################
+
+# a <- apply(A, 2, quantile, probs=0.75)
+# astar <- apply(A, 2, quantile, probs=0.25)
+# e.y <- quantile(E.Y, probs=0.1)
+# TE.age10 <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict.Y=X.predict, alpha = 0.01, sel=sel, seed=122)
 
 #' Estimate controlled direct effect for BKMR
 #' 
@@ -197,18 +204,18 @@ YaMastar.SamplePred <- function(a, astar.m, fit.m, fit.y, X.predict.M, X.predict
 #' @param seed the random seed to use to evaluate the code
 #' @param K number of samples to generate for each MCMC iteration in YaMastar calculation
 #' @return A list contaning the sample prediction for TE, NDE, NIE and their summary statistics
-mediation.bkmr <- function(a.Y, astar.Y, astar.M, m.quant=c(0.25,0.5,0.75), fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
+mediation.bkmr <- function(a.Y, astar.Y, e.y, astar.M, fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
 
   toreturn <- list()
 
   # there should be a simpler way of running
-  TE <- TE.bkmr(a=a.Y, astar=astar.Y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
+  TE <- TE.bkmr(a=a.Y, astar=astar.Y, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
 
   Ya     <- TE$Ya.samp
   Yastar <- TE$Yastar.samp
 
 
-  YaMastar <- YaMastar.SamplePred(a=a.Y, astar.m=astar.M, fit.m=fit.m, fit.y=fit.y,
+  YaMastar <- YaMastar.SamplePred(a=a.Y, astar=astar.M, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
                                         X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
   
   NDE <- YaMastar - Yastar
