@@ -2,7 +2,7 @@
 ####      Posterior/Bootstrap Summary Function        ####
 ##########################################################
 
-##### function to calculate mean/median/CI/sd of a vector of posterior/bootstrap samples
+
 #' Calculate mean/median/CI/sd of a vector of posterior/bootstrap samples
 #' 
 #' @param posteriorsamp sample prediction
@@ -22,6 +22,7 @@ postresults <- function(posteriorsamp, alpha){
 ##########################################################
 ####             Estimate TE for BKMR                 ####
 ##########################################################
+
 
 #' Get Ya and Yastar used in effects caculation
 #' 
@@ -47,10 +48,6 @@ YaYastar.SamplePred <- function(a, astar, e.y, fit.y.TE, X.predict.Y, sel, seed)
   return(list(Ya = Ya, Yastar = Yastar))
 }
 
-# a <- apply(A, 2, quantile, probs=0.75)
-# astar <- apply(A, 2, quantile, probs=0.25)
-# e.y <- quantile(E.Y, probs=0.1)
-# TE.age10 <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict.Y=X.predict, alpha = 0.01, sel=sel, seed=122)
 
 #' Estimate total effect for BKMR
 #' 
@@ -85,7 +82,6 @@ TE.bkmr <- function(a, astar, e.y, fit.y.TE, X.predict.Y, alpha=0.05, sel, seed)
 ##########################################################
 ####           Estimate CDE for BKMR                  ####
 ##########################################################
-# CDE.age10 <- CDE.bkmr(a=a, astar=astar, e.y=e.y, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
 
 
 #' Estimate controlled direct effect for BKMR
@@ -136,10 +132,11 @@ CDE.bkmr <- function(a, astar, e.y, m.quant, fit.y, alpha=0.05, sel, seed){
 ####           YaMastar counterfactual                ####
 ##########################################################
 
+
 #' Get YaMastar used in NDE and NIE caculation
 #' 
-#' @param a exposure variables and effect modifier for outcome at current level
-#' @param astar.m exposure variables and effect modifier for mediator at counterfactual level 
+#' @param a exposure variables at current level
+#' @param astar exposure variables at counterfactual level 
 #' @param fit.m model fit regressing mediator on exposures and confounders on mediator
 #' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
 #' @param X.predict.M counfounders for mediator
@@ -152,7 +149,7 @@ YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.pred
   start.time <- proc.time()
  
   set.seed(seed)
-  EM.samp <- SamplePred(fit.m, Znew = astar.m, Xnew = X.predict.M, sel=sel) 
+  EM.samp <- SamplePred(fit.m, Znew = astar, Xnew = X.predict.M, sel=sel) 
   Mastar     <- as.vector(EM.samp)
   
   sigma.samp  <- sqrt(fit.m$sigsq.eps[sel])
@@ -176,24 +173,17 @@ YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.pred
   return(toreturn)
 }
 
-YaMastar.SamplePred(a=a, astar=astar.M, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
-                    X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
 
 ##########################################################
 ####      Estimate NDE/NIE for BKMR(plus TE)          ####
 ##########################################################
 
-# a <- apply(A, 2, quantile, probs=0.75)
-# astar <- apply(A, 2, quantile, probs=0.25)
-# e.y <- quantile(E.Y, probs=0.1)
-# TE.age10 <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict.Y=X.predict, alpha = 0.01, sel=sel, seed=122)
 
 #' Estimate controlled direct effect for BKMR
 #' 
-#' @param a.Y exposure variables and effect modifier for outcome at current level
-#' @param astar.Y exposure variables and effect modifier for outcome at counterfactual level
-#' @param astar.M exposure variables and effect modifier for mediator at counterfactual level 
-#' @param m.quant values of the quantile that the mediator is set to 
+#' @param a exposure variables at current level
+#' @param astar exposure variables at counterfactual level
+#' @param e.y effect modifier for the outcome variable
 #' @param fit.m model fit regressing mediator on exposures and confounders on mediator
 #' @param fit.y model fit regressing outcome on exposures, effect modifiers, mediator and confounders on outcome
 #' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
@@ -204,18 +194,18 @@ YaMastar.SamplePred(a=a, astar=astar.M, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
 #' @param seed the random seed to use to evaluate the code
 #' @param K number of samples to generate for each MCMC iteration in YaMastar calculation
 #' @return A list contaning the sample prediction for TE, NDE, NIE and their summary statistics
-mediation.bkmr <- function(a.Y, astar.Y, e.y, astar.M, fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
+mediation.bkmr <- function(a, astar, e.y, fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
 
   toreturn <- list()
 
   # there should be a simpler way of running
-  TE <- TE.bkmr(a=a.Y, astar=astar.Y, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
+  TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
 
   Ya     <- TE$Ya.samp
   Yastar <- TE$Yastar.samp
 
 
-  YaMastar <- YaMastar.SamplePred(a=a.Y, astar=astar.M, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
+  YaMastar <- YaMastar.SamplePred(a=a, astar=astar, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
                                         X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
   
   NDE <- YaMastar - Yastar

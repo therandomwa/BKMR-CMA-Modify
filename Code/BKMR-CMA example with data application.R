@@ -84,9 +84,9 @@ colnames(Zm.Y) <- c("As","Mn","Pb","age","BL")
 
 ##### load models 
 
-load("bkmr_y_joint_ageh_nooutliers.RData")
-load("bkmr_y_TE_joint_ageh_nooutliers.RData")
-load("bkmr_m_joint_noage_nooutliers.RData")
+load("../Data/bkmr_y_joint_ageh_nooutliers.RData")
+load("../Data/bkmr_y_TE_joint_ageh_nooutliers.RData")
+load("../Data/bkmr_m_joint_noage_nooutliers.RData")
 
 fit.y <- fit.y.joint.ageh
 fit.m <- fit.m.joint.noage
@@ -109,13 +109,10 @@ X.predict <- matrix(colMeans(X),nrow=1)
 
 ## if modifiers are considered, you should fix the levels of the modifiers 
 astar       <-   apply(A, 2, quantile, probs=0.25)
-astar.age10 <- c(apply(A, 2, quantile, probs=0.25), quantile(E.Y, probs=0.1))
-astar.age90 <- c(apply(A, 2, quantile, probs=0.25), quantile(E.Y, probs=0.9))
-
 a       <-   apply(A, 2, quantile, probs=0.75)
-a.age10 <- c(apply(A, 2, quantile, probs=0.75), quantile(E.Y, probs=0.1))
-a.age90 <- c(apply(A, 2, quantile, probs=0.75), quantile(E.Y, probs=0.9))
 
+e.y10 = quantile(E.Y, probs=0.1)
+e.y90 = quantile(E.Y, probs=0.9)
 
 ## the index of the MCMC iterations to be used for inference 
 sel<-seq(5001,20000,by=15)
@@ -128,7 +125,7 @@ sel<-seq(5001,20000,by=15)
 
 ## estimate the TE for a change in the exposures from astar to a
 ## fixing age at testing to its 10th percentile 
-TE.age10 <- TE.bkmr(a=a.age10, astar=astar.age10, fit.y.TE=fit.y.TE, X.predict=X.predict, alpha = 0.01, sel=sel, seed=122)
+TE.age10 <- TE.bkmr(a=a, astar=astar, e.y=e.y10, fit.y.TE=fit.y.TE, X.predict.Y=X.predict, alpha = 0.01, sel=sel, seed=122)
 
 ## look at the posterior mean, median, and 95% CI for TE
 TE.age10$est
@@ -139,7 +136,7 @@ TE.age10$est
 
 
 ## repeat, now fixing age at testing to its 90th percentile 
-TE.age90 <- TE.bkmr(a=a.age90, astar=astar.age90, fit.y.TE=fit.y.TE, X.predict=X.predict, sel=sel, seed=122)
+TE.age90 <- TE.bkmr(a=a, astar=astar, e.y=e.y90, fit.y.TE=fit.y.TE, X.predict=X.predict, sel=sel, seed=122)
 
 ## look at the posterior mean, median, and 95% CI for TE
 TE.age90$est
@@ -155,13 +152,13 @@ save(TE.age10, TE.age90, file="../Data/TE_example.RData")
 ## estimate the CDE for a change in the exposures from astar to a,
 ## fixing the mediator at its 10th, 50th, and 75th percentile and
 ## age at testing at its 10th percentile 
-CDE.age10 <- CDE.bkmr(a=a.age10, astar=astar.age10, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
+CDE.age10 <- CDE.bkmr(a=a, astar=astar, e.y=e.y10, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
 
 ## look at the posterior mean, median, and 95% CI for the CDEs 
 CDE.age10$est
 
 
-CDE.age90 <- CDE.bkmr(a=a.age90, astar=astar.age90, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
+CDE.age90 <- CDE.bkmr(a=a, astar=astar, e.y=e.y90, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
 
 ## look at the posterior mean, median, and 95% CI for the CDEs 
 CDE.age90$est
@@ -180,7 +177,7 @@ save(CDE.age10, CDE.age90, file="../Data/CDE_example.RData")
 ## X.predict.M and X.predict.Y are the same
 
 ## *** this step takes a while to run and will take longer for more complex bkmr fits, longer sel vectors and larger K
-mediationeffects.age90 <- mediation.bkmr(a.Y=a.age90, astar.Y=astar.age90, astar.M=astar, fit.m=fit.m, fit.y=fit.y, fit.y.TE=fit.y.TE,
+mediationeffects.age90 <- mediation.bkmr(a=a, astar=astar, e.y=e.y90, fit.m=fit.m, fit.y=fit.y, fit.y.TE=fit.y.TE,
                                          X.predict.M=X.predict, X.predict.Y=X.predict, sel=sel, seed=22, K=1000)
 ## save this object
 save(mediationeffects.age90, file="../Data/mediationeffects_age90.RData")
@@ -190,7 +187,7 @@ mediationeffects.age90$est
 
 
 
-mediationeffects.age10 <- mediation.bkmr(a.Y=a.age10, astar.Y=astar.age10, astar.M=astar, fit.m=fit.m, fit.y=fit.y, fit.y.TE=fit.y.TE,
+mediationeffects.age10 <- mediation.bkmr(a=a, astar=astar, e.y=e.y10, fit.m=fit.m, fit.y=fit.y, fit.y.TE=fit.y.TE,
                                          X.predict.M=X.predict, X.predict.Y=X.predict, sel=sel, seed=22, K=1000)
 ## save this object
 save(mediationeffects.age10, file="../Data/mediationeffects_age10.RData")
