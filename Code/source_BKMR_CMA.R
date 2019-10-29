@@ -194,33 +194,59 @@ YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.pred
 #' @param seed the random seed to use to evaluate the code
 #' @param K number of samples to generate for each MCMC iteration in YaMastar calculation
 #' @return A list contaning the sample prediction for TE, NDE, NIE and their summary statistics
-mediation.bkmr <- function(a, astar, e.y, fit.m, fit.y, fit.y.TE, X.predict.M, X.predict.Y, alpha = 0.05, sel, seed, K){
-
-  toreturn <- list()
-
-  # there should be a simpler way of running
-  TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
-
-  Ya     <- TE$Ya.samp
-  Yastar <- TE$Yastar.samp
-
-
-  YaMastar <- YaMastar.SamplePred(a=a, astar=astar, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
-                                        X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
+mediation.bkmr <- function(a, astar, e.y, fit.m, fit.y, fit.y.TE, 
+                           X.predict.M, X.predict.Y, 
+                           effects = c("all"),  # c("All", "TE", "CDE", "NDE", "NIE")
+                           m.quant=c(0.1,0.5,0.75), 
+                           alpha = 0.05, sel, seed, K){
   
-  NDE <- YaMastar - Yastar
-  NIE <- Ya - YaMastar
-
-
-  toreturn$TE.samp <- TE$TE.samp
-  toreturn$NDE.samp <- NDE
-  toreturn$NIE.samp <- NIE
-
-  toreturn$est <- matrix(NA, nrow=3, ncol=4, dimnames=list(c("TE","NDE","NIE"), c("mean","median","lower","upper")))
-  toreturn$est[c("TE","NDE","NIE"),] <- rbind(postresults(TE$TE.samp, alpha=alpha) [c("mean","median","lower","upper")],
-                                              postresults(NDE, alpha=alpha)[c("mean","median","lower","upper")],
-                                              postresults(NIE, alpha=alpha)[c("mean","median","lower","upper")])
-
-  return(toreturn)
+  if (sum(!effects %in% c("all", "TE", "CDE", "NDE", "NIE"))) {
+    stop("effects must be in c('all', 'TE', 'CDE', 'NDE', 'NIE')")
+  }
+  else{
+    if ("all" %in% effects){
+      effects = c("TE", "CDE", "NDE", "NIE")
+    }
+    TE = NULL; CDE = NULL; NDE = NULL; NIE = NULL;
+    toreturn <- list()
+    effects.temp = effects
+    if ("CDE" %in% effects){
+      effects.temp = effects[effects!="CDE"]
+    }
+    toreturn$est <- matrix(NA, nrow=length(effects.temp), ncol=4, dimnames=list(effects.temp, c("mean","median","lower","upper")))
+  
+    if ("TE" %in% effects){
+      TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
+      toreturn$TE.samp <- TE$TE.samp
+      toreturn$est["TE",] <- postresults(TE$TE.samp, alpha=alpha) [c("mean","median","lower","upper")]
+    }
+    if (sum(c("NIE", "NDE") %in% effects)){
+      if (is.null(TE)){
+        TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
+      }
+      
+      Ya     <- TE$Ya.samp
+      Yastar <- TE$Yastar.samp
+      
+      YaMastar <- YaMastar.SamplePred(a=a, astar=astar, e.y = e.y, fit.m=fit.m, fit.y=fit.y,
+                                      X.predict.M=X.predict.M, X.predict.Y=X.predict.Y, sel=sel, seed=seed, K=K)
+      if ("NDE" %in% effects){
+        NDE <- YaMastar - Yastar
+        toreturn$NDE.samp <- NDE
+        toreturn$est["NDE",] <- postresults(NDE, alpha=alpha) [c("mean","median","lower","upper")]
+      }
+      if ("NIE" %in% effects){
+        NIE <- Ya - YaMastar
+        toreturn$NIE.samp <- NIE
+        toreturn$est["NIE",] <- postresults(NIE, alpha=alpha) [c("mean","median","lower","upper")]
+      }
+    }
+    if ("CDE" %in% effects){
+      CDE <- CDE.bkmr(a, astar, e.y, m.quant, fit.y, alpha, sel, seed)
+      toreturn$est = rbind(toreturn$est, CDE$est)
+      toreturn = append(toreturn, CDE[2:length(CDE)])
+    }
+    return (toreturn)
+  }
 }
 
