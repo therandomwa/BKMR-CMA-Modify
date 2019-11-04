@@ -97,12 +97,12 @@ TE.bkmr <- function(a, astar, e.y, fit.y.TE, X.predict.Y, alpha=0.05, sel, seed)
 #' @return Controlled direct effect for BKMR
 CDE.bkmr <- function(a, astar, e.y, m.value=NULL, m.quant=NULL, fit.y, alpha=0.05, sel, seed){
   
-  if (is.null(m.value) & is.null(m.quant)){
-    stop("Must specify either 'm.value' or 'm.quant'")
-  }
-  if (!is.null(m.value) & !is.null(m.quant)){
-    stop("Must only specify one of 'm.value' and 'm.quant'")
-  }
+  # if (is.null(m.value) & is.null(m.quant)){
+  #   stop("Must specify either 'm.value' or 'm.quant'")
+  # }
+  # if (!is.null(m.value) & !is.null(m.quant)){
+  #   stop("Must only specify one of 'm.value' and 'm.quant'")
+  # }
   toreturn <- list()
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
   Z <- fit.y$Z[,-ncol(fit.y$Z)] # exposure + effect modifier
