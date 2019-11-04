@@ -1,0 +1,9 @@
+---
+title: "bkmr causal mediation analysis"
+author: "Aijin Wang"
+date: "11/4/2019"
+output: html_document
+---
+
+In this document, we illustrate how to use the causal mediation analysis part of functions from the $\tt{bkmr}$ R package through examples and graphs. Additional details can be found in
+[Code and description to implement Bayesian Kernel Machine Regression-Causal Mediation Analysis by Devick et al. (arXiv: 1811.10453)](https://arxiv.org/abs/1811.10453)
