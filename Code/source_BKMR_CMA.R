@@ -95,31 +95,58 @@ TE.bkmr <- function(a, astar, e.y, fit.y.TE, X.predict.Y, alpha=0.05, sel, seed)
 #' @param sel a vector selecting which iterations of the fit should be retained or inference
 #' @param seed the random seed to use to evaluate the code
 #' @return Controlled direct effect for BKMR
-CDE.bkmr <- function(a, astar, e.y, m.quant, fit.y, alpha=0.05, sel, seed){
+CDE.bkmr <- function(a, astar, e.y, m.value=NULL, m.quant=NULL, fit.y, alpha=0.05, sel, seed){
   
+  if (is.null(m.value) & is.null(m.quant)){
+    stop("Must specify either 'm.value' or 'm.quant'")
+  }
+  if (!is.null(m.value) & !is.null(m.quant)){
+    stop("Must only specify one of 'm.value' and 'm.quant'")
+  }
   toreturn <- list()
-  
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
   Z <- fit.y$Z[,-ncol(fit.y$Z)] # exposure + effect modifier
   X.predict<-rep(0,ncol(fit.y$X)) # in the calculation for CDE this value doesn't matter since it will get cancelled out
-  
-  toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=4, dimnames=list(paste0("CDE",m.quant*100), c("mean","median","lower","upper")))
-  for(i in seq_along(m.quant)){
-    print(paste(i, "out of", length(m.quant)))
-    mnew <- quantile(m, probs=m.quant[i]) # mediator set to certain quantile 
-    
-    set.seed(seed)
-    z.y = c(a, e.y)
-    zstar.y = c(astar, e.y)
-    newZm  <- rbind(c(z.y,mnew),c(zstar.y,mnew)) # exposure(3), 10% age, 10% mediator 
-    CDE.mat <- SamplePred(fit.y, Znew = newZm, Xnew = X.predict, sel=sel) # X.predict is mean of confounders
-    
-    Yam     <- CDE.mat[,"znew1"]
-    Yastarm <- CDE.mat[,"znew2"]
-    
-    CDE <- as.vector(Yam - Yastarm)
-    toreturn[[paste0("CDE",m.quant[i]*100,".samp")]] <- CDE
-    toreturn$est[paste0("CDE",m.quant[i]*100),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper")]
+  if (is.null(m.value)){
+    toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=4, dimnames=list(paste0("CDE",m.quant*100, "%"), c("mean","median","lower","upper")))
+    print(paste("Running", length(m.quant), "mediator values for CDE:"))
+    for(i in seq_along(m.quant)){
+      print(paste(i, "out of", length(m.quant)))
+      mnew <- quantile(m, probs=m.quant[i]) # mediator set to certain quantile 
+      
+      set.seed(seed)
+      z.y = c(a, e.y)
+      zstar.y = c(astar, e.y)
+      newZm  <- rbind(c(z.y,mnew),c(zstar.y,mnew)) # exposure(3), 10% age, 10% mediator 
+      CDE.mat <- SamplePred(fit.y, Znew = newZm, Xnew = X.predict, sel=sel) # X.predict is mean of confounders
+      
+      Yam     <- CDE.mat[,"znew1"]
+      Yastarm <- CDE.mat[,"znew2"]
+      
+      CDE <- as.vector(Yam - Yastarm)
+      toreturn[[paste0("CDE",m.quant[i]*100,"%.samp")]] <- CDE
+      toreturn$est[paste0("CDE",m.quant[i]*100,"%"),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper")]
+    }
+  }
+  else if (is.null(m.quant)){
+    toreturn$est <- matrix(NA, nrow=length(m.value), ncol=4, dimnames=list(paste0("CDE",m.value), c("mean","median","lower","upper")))
+    for(i in seq_along(m.value)){
+      print(paste(i, "out of", length(m.value)))
+      mnew = m.value[i]
+      
+      set.seed(seed)
+      z.y = c(a, e.y)
+      zstar.y = c(astar, e.y)
+      newZm  <- rbind(c(z.y,mnew),c(zstar.y,mnew)) # exposure(3), 10% age, 10% mediator 
+      CDE.mat <- SamplePred(fit.y, Znew = newZm, Xnew = X.predict, sel=sel) # X.predict is mean of confounders
+      
+      Yam     <- CDE.mat[,"znew1"]
+      Yastarm <- CDE.mat[,"znew2"]
+      
+      CDE <- as.vector(Yam - Yastarm)
+      toreturn[[paste0("CDE",mnew,".samp")]] <- CDE
+      toreturn$est[paste0("CDE",mnew),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper")]
+    }
   }
   
   return(toreturn)
@@ -199,7 +226,8 @@ YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.pred
 mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL, 
                            X.predict.M=NULL, X.predict.Y=NULL, 
                            effects = "all",  # c("all", "TE", "CDE", "NDE", "NIE")
-                           m.quant=c(0.1,0.5,0.75), 
+                           m.quant=NULL, # c(0.1,0.5,0.75), 
+                           m.value=NULL,
                            alpha = 0.05, sel, seed, K){
   
   if (sum(!effects %in% c("all", "TE", "CDE", "NDE", "NIE"))) {
@@ -231,6 +259,12 @@ mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL,
     if ("CDE" %in% effects){
       if (is.null(fit.y)){
         stop("Must specify 'fit.y'")
+      }
+      if (is.null(m.value) & is.null(m.quant)){
+        stop("Must specify either 'm.value' or 'm.quant'")
+      }
+      if (!is.null(m.value) & !is.null(m.quant)){
+        stop("Must only specify one of 'm.value' and 'm.quant'")
       }
     }
     
@@ -270,7 +304,7 @@ mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL,
       }
     }
     if ("CDE" %in% effects){
-      CDE <- CDE.bkmr(a, astar, e.y, m.quant, fit.y, alpha, sel, seed)
+      CDE <- CDE.bkmr(a, astar, e.y, m.value=m.value, m.quant=m.quant, fit.y, alpha, sel, seed)
       toreturn$est = rbind(toreturn$est, CDE$est)
       toreturn = append(toreturn, CDE[2:length(CDE)])
     }
