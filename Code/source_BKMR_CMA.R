@@ -189,14 +189,16 @@ YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.pred
 #' @param fit.y.TE total effect model fit regressing outcome on exposures, effect modifiers and confounders on outcome
 #' @param X.predict.M counfounders for mediator
 #' @param X.predict.Y counfounders for outcome
+#' @param effects type(s) of effects that users want to output
+#' @param m.quant values of the quantile that the mediator is set to 
 #' @param alpha 1-confidence interval
 #' @param sel a vector selecting which iterations of the fit should be retained or inference
 #' @param seed the random seed to use to evaluate the code
 #' @param K number of samples to generate for each MCMC iteration in YaMastar calculation
 #' @return A list contaning the sample prediction for TE, NDE, NIE and their summary statistics
-mediation.bkmr <- function(a, astar, e.y, fit.m, fit.y, fit.y.TE, 
-                           X.predict.M, X.predict.Y, 
-                           effects = c("all"),  # c("All", "TE", "CDE", "NDE", "NIE")
+mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL, 
+                           X.predict.M=NULL, X.predict.Y=NULL, 
+                           effects = "all",  # c("all", "TE", "CDE", "NDE", "NIE")
                            m.quant=c(0.1,0.5,0.75), 
                            alpha = 0.05, sel, seed, K){
   
@@ -207,6 +209,32 @@ mediation.bkmr <- function(a, astar, e.y, fit.m, fit.y, fit.y.TE,
     if ("all" %in% effects){
       effects = c("TE", "CDE", "NDE", "NIE")
     }
+    if ("TE" %in% effects){
+      if (is.null(fit.y.TE)){
+        stop("Must specify 'fit.y.TE'")
+      }
+      if (is.null(X.predict.Y)){
+        stop("Must specify 'X.predict.Y'")
+      }
+    }
+    if (sum(c("NIE", "NDE") %in% effects)){
+      if (is.null(fit.y.TE) | is.null(fit.m) | is.null(fit.y)){
+        stop("Must specify all three fits: 'fit.y.TE', 'fit.y', 'fit.m'")
+      }
+      if (is.null(X.predict.Y)){
+        stop("Must specify 'X.predict.Y'")
+      }
+      if (is.null(X.predict.M)){
+        stop("Must specify 'X.predict.M'")
+      }
+    }
+    if ("CDE" %in% effects){
+      if (is.null(fit.y)){
+        stop("Must specify 'fit.y'")
+      }
+    }
+    
+    # start code
     TE = NULL; CDE = NULL; NDE = NULL; NIE = NULL;
     toreturn <- list()
     effects.temp = effects
