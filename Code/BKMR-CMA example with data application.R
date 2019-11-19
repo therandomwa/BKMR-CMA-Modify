@@ -115,7 +115,7 @@ e.y10 = quantile(E.Y, probs=0.1)
 e.y90 = quantile(E.Y, probs=0.9)
 
 ## the index of the MCMC iterations to be used for inference 
-sel<-seq(5001,20000,by=15)
+sel<-seq(5001,20000,by=1000)
 
 
 
@@ -142,7 +142,7 @@ TE.age90 <- TE.bkmr(a=a, astar=astar, e.y=e.y90, fit.y.TE=fit.y.TE, X.predict=X.
 TE.age90$est
 
 
-save(TE.age10, TE.age90, file="../Data/TE_example.RData")
+save(TE.age10, TE.age90, file="../Data/Effect/TE_example.RData")
 
 
 ##########################################################
@@ -152,18 +152,18 @@ save(TE.age10, TE.age90, file="../Data/TE_example.RData")
 ## estimate the CDE for a change in the exposures from astar to a,
 ## fixing the mediator at its 10th, 50th, and 75th percentile and
 ## age at testing at its 10th percentile 
-CDE.age10 <- CDE.bkmr(a=a, astar=astar, e.y=e.y10, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
+CDE.age10 <- CDE.bkmr(a=a, astar=astar, e.y=e.y10, fit.y=fit.y, sel=sel, seed=122)
 
 ## look at the posterior mean, median, and 95% CI for the CDEs 
 CDE.age10$est
 
 
-CDE.age90 <- CDE.bkmr(a=a, astar=astar, e.y=e.y90, m.quant=c(0.1,0.5,0.75), fit.y=fit.y, sel=sel, seed=777)
+CDE.age90 <- CDE.bkmr(a=a, astar=astar, e.y=e.y90, fit.y=fit.y, sel=sel, seed=122)
 
 ## look at the posterior mean, median, and 95% CI for the CDEs 
 CDE.age90$est
 
-save(CDE.age10, CDE.age90, file="../Data/CDE_example.RData")
+save(CDE.age10, CDE.age90, file="../Data/Effect/CDE_example.RData")
 
 
 ##########################################################
@@ -178,9 +178,8 @@ save(CDE.age10, CDE.age90, file="../Data/CDE_example.RData")
 
 ## *** this step takes a while to run and will take longer for more complex bkmr fits, longer sel vectors and larger K
 mediationeffects.age90 <- mediation.bkmr(a=a, astar=astar, e.y=e.y90, fit.m=fit.m, fit.y=fit.y, fit.y.TE=fit.y.TE,
-                                         X.predict.M=X.predict, X.predict.Y=X.predict, sel=sel, seed=22, K=1000)
+                                         X.predict.M=X.predict, X.predict.Y=X.predict, sel=sel, seed=122, K=10)
 ## save this object
-save(mediationeffects.age90, file="../Data/mediationeffects_age90.RData")
 
 ## look at the posterior mean, median, and 95% CI for the TE, NDE, and NIE
 mediationeffects.age90$est
@@ -188,10 +187,11 @@ mediationeffects.age90$est
 
 
 mediationeffects.age10 <- mediation.bkmr(a=a, astar=astar, e.y=e.y10, fit.m=fit.m, fit.y=fit.y, fit.y.TE=fit.y.TE,
-                                         X.predict.M=X.predict, X.predict.Y=X.predict, sel=sel, seed=22, K=1000)
+                                         X.predict.M=X.predict, X.predict.Y=X.predict, sel=sel, seed=122, K=10)
 ## save this object
-save(mediationeffects.age10, file="../Data/mediationeffects_age10.RData")
 
 ## look at the posterior mean, median, and 95% CI for the TE, NDE, and NIE
 mediationeffects.age10$est
 
+save(mediationeffects.age10, mediationeffects.age90, file="../Data/Effect/mediation_example.RData")
+                                       

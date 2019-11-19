@@ -73,7 +73,7 @@ TE.bkmr <- function(a, astar, e.y, fit.y.TE, X.predict.Y, alpha=0.05, sel, seed)
   toreturn$Yastar.samp <- as.vector(Yastar) 
   
   TE.sum <- postresults(toreturn$TE, alpha=alpha)
-  toreturn$est  <- TE.sum[c("mean","median","lower","upper")]
+  toreturn$est  <- TE.sum[c("mean","median","lower","upper","sd")]
   return(toreturn)
 }
 
@@ -96,14 +96,16 @@ TE.bkmr <- function(a, astar, e.y, fit.y.TE, X.predict.Y, alpha=0.05, sel, seed)
 #' @param sel a vector selecting which iterations of the fit should be retained or inference
 #' @param seed the random seed to use to evaluate the code
 #' @return Controlled direct effect for BKMR
-CDE.bkmr <- function(a, astar, e.y, m.value=NULL, m.quant=NULL, fit.y, alpha=0.05, sel, seed){
-  
+CDE.bkmr <- function(a, astar, e.y, m.value=NULL, m.quant=c(0.1,0.5,0.75), fit.y, alpha=0.05, sel, seed){
+  if (!is.null(m.value) & !is.null(m.quant)){
+    m.quant = NULL # if both m.value and m.quant are specified, default set to m.value
+  }
   toreturn <- list()
   m <- fit.y$Z[,ncol(fit.y$Z)]  ### okay as long as m is the LAST variable in Zm birthlength
   Z <- fit.y$Z[,-ncol(fit.y$Z)] # exposure + effect modifier
   X.predict<-rep(0,ncol(fit.y$X)) # in the calculation for CDE this value doesn't matter since it will get cancelled out
   if (is.null(m.value)){
-    toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=4, dimnames=list(paste0("CDE",m.quant*100, "%"), c("mean","median","lower","upper")))
+    toreturn$est <- matrix(NA, nrow=length(m.quant), ncol=5, dimnames=list(paste0("CDE",m.quant*100, "%"), c("mean","median","lower","upper","sd")))
     print(paste("Running", length(m.quant), "mediator values for CDE:"))
     for(i in seq_along(m.quant)){
       print(paste(i, "out of", length(m.quant)))
@@ -120,11 +122,12 @@ CDE.bkmr <- function(a, astar, e.y, m.value=NULL, m.quant=NULL, fit.y, alpha=0.0
       
       CDE <- as.vector(Yam - Yastarm)
       toreturn[[paste0("CDE",m.quant[i]*100,"%.samp")]] <- CDE
-      toreturn$est[paste0("CDE",m.quant[i]*100,"%"),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper")]
+      toreturn$est[paste0("CDE",m.quant[i]*100,"%"),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper","sd")]
     }
   }
   else if (is.null(m.quant)){
-    toreturn$est <- matrix(NA, nrow=length(m.value), ncol=4, dimnames=list(paste0("CDE",m.value), c("mean","median","lower","upper")))
+    toreturn$est <- matrix(NA, nrow=length(m.value), ncol=5, dimnames=list(paste0("CDE",m.value), c("mean","median","lower","upper","sd")))
+    print(paste("Running", length(m.value), "mediator values for CDE:"))
     for(i in seq_along(m.value)){
       print(paste(i, "out of", length(m.value)))
       mnew = m.value[i]
@@ -140,7 +143,7 @@ CDE.bkmr <- function(a, astar, e.y, m.value=NULL, m.quant=NULL, fit.y, alpha=0.0
       
       CDE <- as.vector(Yam - Yastarm)
       toreturn[[paste0("CDE",mnew,".samp")]] <- CDE
-      toreturn$est[paste0("CDE",mnew),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper")]
+      toreturn$est[paste0("CDE",mnew),] <- postresults(CDE, alpha=alpha)[c("mean","median","lower","upper","sd")]
     }
   }
   
@@ -222,8 +225,8 @@ YaMastar.SamplePred <- function(a, astar, e.y, fit.m, fit.y, X.predict.M, X.pred
 #' @return A list contaning the sample prediction for TE, NDE, NIE and their summary statistics
 mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL, 
                            X.predict.M=NULL, X.predict.Y=NULL, 
-                           effects = "all",  # c("all", "TE", "CDE", "NDE", "NIE")
-                           m.quant=NULL, # c(0.1,0.5,0.75), 
+                           effects = "all",  # c("all", "TE", "CDE", (meidation: "PNDE", "TNIE"), ("TNDE", "PNIE"))
+                           m.quant=c(0.1,0.5,0.75), 
                            m.value=NULL,
                            alpha = 0.05, sel, seed, K){
   
@@ -257,11 +260,11 @@ mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL,
       if (is.null(fit.y)){
         stop("Must specify 'fit.y'")
       }
-      if (is.null(m.value) & is.null(m.quant)){
-        stop("Must specify either 'm.value' or 'm.quant'")
-      }
+      # if (is.null(m.value) & is.null(m.quant)){
+      #   stop("Must specify either 'm.value' or 'm.quant'")
+      # }
       if (!is.null(m.value) & !is.null(m.quant)){
-        stop("Must only specify one of 'm.value' and 'm.quant'")
+        m.quant = NULL # if both m.value and m.quant are specified, default set to m.value
       }
     }
     
@@ -272,16 +275,16 @@ mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL,
     if ("CDE" %in% effects){
       effects.temp = effects[effects!="CDE"]
     }
-    toreturn$est <- matrix(NA, nrow=length(effects.temp), ncol=4, dimnames=list(effects.temp, c("mean","median","lower","upper")))
+    toreturn$est <- matrix(NA, nrow=length(effects.temp), ncol=5, dimnames=list(effects.temp, c("mean","median","lower","upper","sd")))
   
     if ("TE" %in% effects){
-      TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
+      TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=seed)
       toreturn$TE.samp <- TE$TE.samp
-      toreturn$est["TE",] <- postresults(TE$TE.samp, alpha=alpha) [c("mean","median","lower","upper")]
+      toreturn$est["TE",] <- postresults(TE$TE.samp, alpha=alpha) [c("mean","median","lower","upper","sd")]
     }
     if (sum(c("NIE", "NDE") %in% effects)){
       if (is.null(TE)){
-        TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=(seed+100))
+        TE <- TE.bkmr(a=a, astar=astar, e.y=e.y, fit.y.TE=fit.y.TE, X.predict=X.predict.Y, alpha=alpha, sel=sel, seed=seed)
       }
       
       Ya     <- TE$Ya.samp
@@ -292,12 +295,12 @@ mediation.bkmr <- function(a, astar, e.y, fit.m=NULL, fit.y=NULL, fit.y.TE=NULL,
       if ("NDE" %in% effects){
         NDE <- YaMastar - Yastar
         toreturn$NDE.samp <- NDE
-        toreturn$est["NDE",] <- postresults(NDE, alpha=alpha) [c("mean","median","lower","upper")]
+        toreturn$est["NDE",] <- postresults(NDE, alpha=alpha) [c("mean","median","lower","upper","sd")]
       }
       if ("NIE" %in% effects){
         NIE <- Ya - YaMastar
         toreturn$NIE.samp <- NIE
-        toreturn$est["NIE",] <- postresults(NIE, alpha=alpha) [c("mean","median","lower","upper")]
+        toreturn$est["NIE",] <- postresults(NIE, alpha=alpha) [c("mean","median","lower","upper","sd")]
       }
     }
     if ("CDE" %in% effects){
