@@ -1,4 +1,5 @@
 library(bkmr)
+library(tidyverse)
 
 load("../Data/test_data.RData")
 source("source_BKMR_CMA.R")
@@ -55,5 +56,22 @@ risks.singvar90 = SingVarRiskSummaries.CMA(BKMRfits = fit.y.TE,
                                            sel=sel)
 ggplot(risks.singvar90, aes(variable, est, ymin = est - 1.96*sd, 
                             ymax = est + 1.96*sd, col = q.fixed)) + 
+  geom_pointrange(position = position_dodge(width = 0.75)) + 
+  coord_flip()
+
+# single variable controlled direct effects
+CDErisks.singvar10 = CDESingVarRiskSummaries.CMA(BKMRfits = fit.y,
+                                           e.y=e.y10, e.y.names="age", m.name = "BL",
+                                           sel=sel)
+ggplot(CDErisks.singvar10, aes(variable, est, ymin = est - 1.96*sd, 
+                            ymax = est + 1.96*sd, col = q.fixed, linetype = m.fixed)) + 
+  geom_pointrange(position = position_dodge(width = 0.75)) + 
+  coord_flip()
+
+CDErisks.singvar90 = CDESingVarRiskSummaries.CMA(BKMRfits = fit.y,
+                                                 e.y=e.y90, e.y.names="age", m.name = "BL",
+                                                 sel=sel)
+ggplot(CDErisks.singvar90, aes(variable, est, ymin = est - 1.96*sd, 
+                               ymax = est + 1.96*sd, col = q.fixed, linetype = m.fixed)) + 
   geom_pointrange(position = position_dodge(width = 0.75)) + 
   coord_flip()
